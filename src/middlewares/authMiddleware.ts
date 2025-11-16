@@ -1,18 +1,26 @@
 import { Request, Response, NextFunction } from "express";
-import prisma from "../prismaClient";
+import jwt from "jsonwebtoken";
 
-/**
- * Simple tokenless auth for dev:
- * - Accepts x-user-id header for testing
- * - If no header, tries basic phone/password from body (login route handles)
- * Replace with JWT when ready.
- */
-export async function authMiddleware(req: Request & { user?: any }, res: Response, next: NextFunction) {
-  const header = req.headers["x-user-id"];
-  if (header) {
-    req.user = { id: Number(header) };
-    return next();
+export interface AuthRequest extends Request {
+  user?: any;
+}
+
+export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader)
+      return res.status(401).json({ ok: false, error: "Token missing" });
+
+    const token = authHeader.split(" ")[1];
+    if (!token)
+      return res.status(401).json({ ok: false, error: "Invalid token format" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
+
+    next();
+  } catch (e) {
+    return res.status(401).json({ ok: false, error: "Invalid or expired token" });
   }
-
-  return res.status(401).json({ ok: false, error: "Unauthorized - add x-user-id header for dev" });
 }
