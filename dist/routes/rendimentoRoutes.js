@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const rendimentoController_1 = require("../controllers/rendimentoController");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const adminMiddleware_1 = require("../middlewares/adminMiddleware");
+const router = (0, express_1.Router)();
+router.post("/run-all", authMiddleware_1.authMiddleware, adminMiddleware_1.adminMiddleware, rendimentoController_1.runAll);
+router.post("/run/:id", authMiddleware_1.authMiddleware, adminMiddleware_1.adminMiddleware, rendimentoController_1.runOne);
+exports.default = router;

@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  phone        String        @unique
+  password     String
+  inviteCode   String?
+  saldo        Float         @default(0.0)
+  isAdmin      Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  banco        Banco?
+  referredBy   Referral?     @relation("UserReferredBy")
+  referrals    Referral[]    @relation("UserReferrals")
+  transactions Transaction[]
+  products     UserProduct[]
+}
+
+model Product {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  descricao    String?
+  valorMinimo  Float
+  rendimento   Float
+  duracaoDias  Int
+  imagem       String?
+  ativo        Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  users        UserProduct[]
+}
+
+model UserProduct {
+  id                   Int           @id @default(autoincrement())
+  userId               Int
+  productId            Int
+  investido            Float
+  rendimentoAcumulado  Float         @default(0.0)
+  createdAt            DateTime      @default(now())
+  product              Product       @relation(fields: [productId], references: [id])
+  user                 User          @relation(fields: [userId], references: [id])
+  dailyYields          DailyYield[]
+}
+
+model DailyYield {
+  id            Int          @id @default(autoincrement())
+  date          DateTime     @default(now())
+  amount        Float
+  userProductId Int
+  userProduct   UserProduct  @relation(fields: [userProductId], references: [id])
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  type      String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Banco {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  titular   String
+  conta     String
+  endereco  String?
+  userId    Int     @unique
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model Referral {
+  id             Int  @id @default(autoincrement())
+  referredUserId Int  @unique
+  referrerId     Int
+  referredUser   User @relation("UserReferredBy", fields: [referredUserId], references: [id])
+  referrer       User @relation("UserReferrals", fields: [referrerId], references: [id])
+}
