@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { listarProdutos } from "../controllers/productController";
+import { getProducts } from "../controllers/productController";
+
 const router = Router();
-router.get("/", listarProdutos);
+router.get("/", getProducts);
+
 export default router;

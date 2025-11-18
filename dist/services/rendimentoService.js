@@ -7,7 +7,6 @@ exports.gerarRendimentosTodos = exports.gerarRendimentoDiario = void 0;
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const date_fns_1 = require("date-fns");
 async function gerarRendimentoDiario(userProductId) {
-    var _a, _b;
     const up = await prismaClient_1.default.userProduct.findUnique({ where: { id: userProductId }, include: { product: true, user: true } });
     if (!up || !up.product)
         return { ok: false, error: "UserProduct or Product not found" };
@@ -22,7 +21,7 @@ async function gerarRendimentoDiario(userProductId) {
         return { ok: false, reason: "already_generated_today" };
     const created = await prismaClient_1.default.dailyYield.create({ data: { userProductId, amount: rendimentoDia } });
     await prismaClient_1.default.userProduct.update({ where: { id: userProductId }, data: { rendimentoAcumulado: up.rendimentoAcumulado + rendimentoDia } });
-    await prismaClient_1.default.user.update({ where: { id: up.userId }, data: { saldo: ((_b = (_a = up.user) === null || _a === void 0 ? void 0 : _a.saldo) !== null && _b !== void 0 ? _b : 0) + rendimentoDia } });
+    await prismaClient_1.default.user.update({ where: { id: up.userId }, data: { saldo: (up.user?.saldo ?? 0) + rendimentoDia } });
     await prismaClient_1.default.transaction.create({ data: { userId: up.userId, amount: rendimentoDia, type: "Rendimento", status: "approved" } });
     return { ok: true, rendimentoDia, dailyYieldId: created.id };
 }

@@ -1,79 +1,134 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🚀 Iniciando criação de dados iniciais...");
+  console.log("🚀 Iniciando seed...");
 
-  // Criação do usuário administrador
-  const user = await prisma.user.upsert({
-    where: { phone: "941971541" },
-    update: {},
-    create: {
-      phone: "941971541",
-      password: "123456",
-      saldo: 0,
-      isAdmin: true,
-    },
-  });
+  // admin
+  const adminPhone = "934096717";
+  const adminPassword = "040397";
+  const inviteCode = "REPSOL-0001";
 
-  console.log("✅ Usuário criado:", user.phone);
+  const adminExists = await prisma.user.findUnique({ where: { phone: adminPhone } });
+  if (!adminExists) {
+    const hash = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.create({
+      data: {
+        phone: adminPhone,
+        password: hash,
+        inviteCode,
+        isAdmin: true,
+        saldo: 0
+      }
+    });
+    console.log("✅ Admin criado:", adminPhone);
+  } else {
+    console.log("🔸 Admin já existe:", adminPhone);
+  }
 
-  // Produtos Reais Repsol — compatíveis com o schema atual
+  // produtos reais (7)
   const produtos = [
-    { name: "Gás Butano",     minValue: 9000,   dailyRate: 270 / 9000,   durationDays: 150, image: "butano.png",     description: "Produto de entrada" },
-    { name: "Gás Metano",     minValue: 20000,  dailyRate: 600 / 20000,  durationDays: 150, image: "metano.png",     description: "Plano médio" },
-    { name: "Gás Propano",    minValue: 60000,  dailyRate: 1800 / 60000, durationDays: 150, image: "propano.png",    description: "Plano equilibrado" },
-    { name: "Gás Pentano",    minValue: 150000, dailyRate: 4500 / 150000, durationDays: 150, image: "pentano.png",    description: "Plano sólido" },
-    { name: "Gás Hexano",     minValue: 250000, dailyRate: 7000 / 250000, durationDays: 150, image: "hexano.png",     description: "Plano alto rendimento" },
-    { name: "Gás Heptano",    minValue: 500000, dailyRate: 12000 / 500000, durationDays: 150, image: "heptano.png",   description: "Plano avançado" },
-    { name: "Gás Octano",     minValue: 1000000, dailyRate: 25000 / 1000000, durationDays: 150, image: "octano.png",   description: "Plano supremo Repsol" },
+    {
+      nome: "Gás Butano",
+      descricao: "Produto de entrada com rendimento diário de 3%.",
+      valorMinimo: 9000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "butano.png"
+    },
+    {
+      nome: "Gás Metano",
+      descricao: "Plano médio para rendimento estável de 3% ao dia.",
+      valorMinimo: 20000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "metano.png"
+    },
+    {
+      nome: "Gás Propano",
+      descricao: "Investimento com bom retorno e risco controlado.",
+      valorMinimo: 60000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "propano.png"
+    },
+    {
+      nome: "Gás Pentano",
+      descricao: "Plano sólido com retorno diário garantido.",
+      valorMinimo: 150000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "pentano.png"
+    },
+    {
+      nome: "Gás Hexano",
+      descricao: "Ideal para investidores experientes com ganhos diários de 3%.",
+      valorMinimo: 250000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "hexano.png"
+    },
+    {
+      nome: "Gás Heptano",
+      descricao: "Alto rendimento e estabilidade de 3% diário.",
+      valorMinimo: 500000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "heptano.png"
+    },
+    {
+      nome: "Gás Octano",
+      descricao: "Plano máximo de investimento com lucros expressivos de 3% ao dia.",
+      valorMinimo: 1000000,
+      rendimento: 3.0,
+      duracaoDias: 150,
+      imagem: "octano.png"
+    }
   ];
 
-  // Criação dos produtos
   for (const p of produtos) {
-    const existente = await prisma.product.findFirst({ where: { name: p.name } });
-    if (!existente) {
+    const exists = await prisma.product.findFirst({ where: { nome: p.nome } });
+    if (!exists) {
       await prisma.product.create({ data: p });
-      console.log("📦 Produto criado:", p.name);
+      console.log(`✅ Produto criado: ${p.nome}`);
     } else {
-      console.log("🔸 Produto já existe:", p.name);
+      console.log(`🔸 Produto já existe: ${p.nome}`);
     }
   }
 
-  // Criar investimento de teste
-  const produtoTeste = await prisma.product.findFirst({ where: { name: "Gás Butano" } });
+  // criar investimento de teste para admin (opcional)
+  const produtoTeste = await prisma.product.findFirst({ where: { nome: "Gás Butano" } });
+  const adminUser = await prisma.user.findUnique({ where: { phone: adminPhone } });
 
-  if (produtoTeste) {
-    const invExistente = await prisma.userProduct.findFirst({
-      where: {
-        userId: user.id,
-        productId: produtoTeste.id,
-      },
+  if (produtoTeste && adminUser) {
+    const invExists = await prisma.userProduct.findFirst({
+      where: { userId: adminUser.id, productId: produtoTeste.id }
     });
 
-    if (!invExistente) {
+    if (!invExists) {
       await prisma.userProduct.create({
         data: {
-          userId: user.id,
+          userId: adminUser.id,
           productId: produtoTeste.id,
-          investedValue: produtoTeste.minValue,
-          dailyYield: produtoTeste.minValue * produtoTeste.dailyRate,
-          totalYield: 0,
-          daysRemaining: produtoTeste.durationDays,
-        },
+          investido: produtoTeste.valorMinimo,
+          rendimentoAcumulado: 0
+        }
       });
-
-      console.log("💰 Investimento de teste criado em Gás Butano");
+      console.log("✅ Investimento de teste criado para admin (Gás Butano).");
+    } else {
+      console.log("🔸 Investimento de teste já existe.");
     }
   }
 
-  console.log("🎯 Base de dados inicial pronta!");
+  console.log("🎯 Seed finalizado.");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro no seed:", e);
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

@@ -5,21 +5,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDashboard = void 0;
 const prismaClient_1 = __importDefault(require("../prismaClient"));
-async function getDashboard(req, res) {
+async function getDashboard(_req, res) {
     try {
-        const userId = Number(req.params.userId);
-        if (!userId)
-            return res.status(400).json({ ok: false, error: "Invalid userId" });
-        const userProducts = await prismaClient_1.default.userProduct.findMany({ where: { userId }, include: { product: true } });
-        const totalInvestido = userProducts.reduce((t, u) => { var _a; return t + ((_a = u.investido) !== null && _a !== void 0 ? _a : 0); }, 0);
-        const totalRendimentos = userProducts.reduce((t, u) => { var _a; return t + ((_a = u.rendimentoAcumulado) !== null && _a !== void 0 ? _a : 0); }, 0);
-        const totalAtual = totalInvestido + totalRendimentos;
-        const transacoes = await prismaClient_1.default.transaction.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 20 });
-        return res.json({ ok: true, data: { totalInvestido, totalRendimentos, totalAtual, transacoes } });
+        // Example summary: total invested (sum investido), total rendimento (sum rendimentoAcumulado)
+        const totalInvestido = await prismaClient_1.default.userProduct.aggregate({
+            _sum: { investido: true }
+        });
+        const totalRendimento = await prismaClient_1.default.userProduct.aggregate({
+            _sum: { rendimentoAcumulado: true }
+        });
+        const products = await prismaClient_1.default.userProduct.findMany({
+            include: { product: true }
+        });
+        return res.json({
+            totalInvestido: totalInvestido._sum.investido ?? 0,
+            totalRendimento: totalRendimento._sum.rendimentoAcumulado ?? 0,
+            products
+        });
     }
     catch (e) {
-        return res.status(500).json({ ok: false, error: e.message });
+        return res.status(500).json({ error: "Erro ao buscar dashboard" });
     }
 }
 exports.getDashboard = getDashboard;
-exports.default = { getDashboard };

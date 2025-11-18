@@ -6,21 +6,21 @@ export interface AuthRequest extends Request {
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ ok: false, error: "Missing token" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader)
-      return res.status(401).json({ ok: false, error: "Token missing" });
-
-    const token = authHeader.split(" ")[1];
-    if (!token)
-      return res.status(401).json({ ok: false, error: "Invalid token format" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
     req.user = decoded;
-
     next();
-  } catch (e) {
-    return res.status(401).json({ ok: false, error: "Invalid or expired token" });
+  } catch {
+    return res.status(401).json({ ok: false, error: "Invalid token" });
   }
 }
+
+export default authMiddleware;

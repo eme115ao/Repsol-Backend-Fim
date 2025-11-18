@@ -1,6 +1,10 @@
-import { Router } from "express";
-import { criarInvestimento, listarProdutosComprados } from "../controllers/investmentController";
-const router = Router();
-router.post("/", criarInvestimento);
-router.get("/user/:userId", listarProdutosComprados);
+import express from "express";
+import { createInvestment } from "../controllers/investmentController";
+import authMiddleware from "../middlewares/authMiddleware";
+
+const router = express.Router();
+
+// POST /api/invest
+router.post("/", authMiddleware, createInvestment);
+
 export default router;

@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { getDashboard } from "../controllers/dashboardController";
+
 const router = Router();
-router.get("/:userId", getDashboard);
+router.get("/", getDashboard);
+
 export default router;

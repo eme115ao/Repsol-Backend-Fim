@@ -1,54 +1,49 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = exports.register = void 0;
-const prismaClient_1 = __importDefault(require("../prismaClient"));
-const hash_1 = require("../utils/hash");
-/**
- * Register and login minimal endpoints.
- * Register: phone, password, optional inviteCode
- * Login: phone, password -> returns user object (no JWT yet)
- */
+const authService = __importStar(require("../services/authService"));
 async function register(req, res) {
     try {
         const { phone, password, inviteCode } = req.body;
-        if (!phone || !password)
-            return res.status(400).json({ ok: false, error: "phone and password required" });
-        const hashed = (0, hash_1.hashPassword)(password);
-        const existing = await prismaClient_1.default.user.findUnique({ where: { phone } });
-        if (existing)
-            return res.status(400).json({ ok: false, error: "Phone already registered" });
-        const user = await prismaClient_1.default.user.create({
-            data: {
-                phone,
-                password: hashed,
-                inviteCode: inviteCode !== null && inviteCode !== void 0 ? inviteCode : null,
-            },
-        });
-        return res.status(201).json({ ok: true, data: { id: user.id, phone: user.phone } });
+        const result = await authService.register({ phone, password, inviteCode });
+        return res.status(201).json(result);
     }
     catch (e) {
-        return res.status(500).json({ ok: false, error: e.message });
+        return res.status(400).json({ ok: false, error: e.message || "Erro" });
     }
 }
 exports.register = register;
 async function login(req, res) {
     try {
         const { phone, password } = req.body;
-        if (!phone || !password)
-            return res.status(400).json({ ok: false, error: "phone and password required" });
-        const hashed = (0, hash_1.hashPassword)(password);
-        const user = await prismaClient_1.default.user.findUnique({ where: { phone } });
-        if (!user || user.password !== hashed)
-            return res.status(401).json({ ok: false, error: "Invalid credentials" });
-        // return user basic info (no JWT for now)
-        return res.json({ ok: true, data: { id: user.id, phone: user.phone, isAdmin: user.isAdmin } });
+        const result = await authService.login({ phone, password });
+        return res.json(result);
     }
     catch (e) {
-        return res.status(500).json({ ok: false, error: e.message });
+        return res.status(401).json({ ok: false, error: e.message || "Credenciais inválidas" });
     }
 }
 exports.login = login;
-exports.default = { register, login };

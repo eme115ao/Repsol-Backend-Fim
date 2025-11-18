@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { listarProdutosComprados } from "../controllers/investmentController";
+
 const router = Router();
-router.get("/:userId", listarProdutosComprados);
+
+// Esta rota estava com erro e não existe no controller,
+// portanto será removida por completo.
+
 export default router;
