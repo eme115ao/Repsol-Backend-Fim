@@ -3,28 +3,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDashboard = void 0;
 const prismaClient_1 = __importDefault(require("../prismaClient"));
-async function getDashboard(_req, res) {
-    try {
-        // Example summary: total invested (sum investido), total rendimento (sum rendimentoAcumulado)
-        const totalInvestido = await prismaClient_1.default.userProduct.aggregate({
-            _sum: { investido: true }
-        });
-        const totalRendimento = await prismaClient_1.default.userProduct.aggregate({
-            _sum: { rendimentoAcumulado: true }
-        });
-        const products = await prismaClient_1.default.userProduct.findMany({
-            include: { product: true }
-        });
-        return res.json({
-            totalInvestido: totalInvestido._sum.investido ?? 0,
-            totalRendimento: totalRendimento._sum.rendimentoAcumulado ?? 0,
-            products
-        });
-    }
-    catch (e) {
-        return res.status(500).json({ error: "Erro ao buscar dashboard" });
-    }
-}
-exports.getDashboard = getDashboard;
+exports.default = {
+    async getDashboard(req, res) {
+        const id = Number(req.params.id);
+        try {
+            const userProducts = await prismaClient_1.default.userProduct.findMany({
+                where: { userId: id },
+                include: { product: true },
+            });
+            const totalInvestido = userProducts.reduce((acc, item) => acc + item.investido, 0);
+            const totalRendimento = userProducts.reduce((acc, item) => acc + item.rendimentoAcumulado, 0);
+            return res.json({
+                totalInvestido,
+                totalRendimento,
+                produtos: userProducts,
+            });
+        }
+        catch (error) {
+            console.error("Erro dashboard:", error);
+            return res.status(500).json({ error: "Erro ao carregar dashboard" });
+        }
+    },
+};
