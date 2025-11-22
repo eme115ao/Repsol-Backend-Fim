@@ -1,8 +1,9 @@
+// src/routes/lojaRoutes.ts
 import { Router } from "express";
+import { getPurchasedProductsController } from "../controllers/lojaController";
 
 const router = Router();
 
-// Esta rota estava com erro e não existe no controller,
-// portanto será removida por completo.
+router.get("/comprados/:userId", getPurchasedProductsController);
 
 export default router;
