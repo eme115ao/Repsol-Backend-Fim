@@ -15,11 +15,13 @@ model User {
   saldo        Float         @default(0.0)
   isAdmin      Boolean       @default(false)
   createdAt    DateTime      @default(now())
-  banco        Banco?
+
+  // Relações
   referredBy   Referral?     @relation("UserReferredBy")
   referrals    Referral[]    @relation("UserReferrals")
   transactions Transaction[]
   products     UserProduct[]
+  bancos       BancoUsuario[]   // 1..N bancos do usuário (saques)
 }
 
 model Product {
@@ -27,21 +29,23 @@ model Product {
   nome         String
   descricao    String?
   valorMinimo  Float
-  rendimento   Float
+  rendimento   Float    // armazenar como porcentagem (ex: 3.0 = 3% ao dia)
   duracaoDias  Int
   imagem       String?
   ativo        Boolean       @default(true)
   createdAt    DateTime      @default(now())
+
   users        UserProduct[]
 }
 
 model UserProduct {
-  id                   Int           @id @default(autoincrement())
+  id                   Int          @id @default(autoincrement())
   userId               Int
   productId            Int
   investido            Float
-  rendimentoAcumulado  Float         @default(0.0)
-  createdAt            DateTime      @default(now())
+  rendimentoAcumulado  Float        @default(0.0)
+  createdAt            DateTime     @default(now())
+
   product              Product       @relation(fields: [productId], references: [id])
   user                 User          @relation(fields: [userId], references: [id])
   dailyYields          DailyYield[]
@@ -52,6 +56,7 @@ model DailyYield {
   date          DateTime     @default(now())
   amount        Float
   userProductId Int
+
   userProduct   UserProduct  @relation(fields: [userProductId], references: [id])
 }
 
@@ -60,20 +65,34 @@ model Transaction {
   amount       Float
   type         String
   status       String   @default("pending")
-  comprovativo String?  // <-- Adicionado
+  comprovativo String?
   createdAt    DateTime @default(now())
   userId       Int
+
   user         User     @relation(fields: [userId], references: [id])
 }
 
-
-model Banco {
+//
+// Bancos da EMPRESA — usados para DEPÓSITOS (lista pública)
+//
+model BancoEmpresa {
   id        Int     @id @default(autoincrement())
   nome      String
   titular   String
   conta     String
   endereco  String?
-  userId    Int     @unique
+}
+
+//
+// Bancos DO USUÁRIO — usados para SAQUES (cada usuário pode ter vários)
+//
+model BancoUsuario {
+  id        Int     @id @default(autoincrement())
+  banco     String
+  titular   String
+  conta     String
+  userId    Int
+
   user      User    @relation(fields: [userId], references: [id])
 }
 
@@ -81,6 +100,7 @@ model Referral {
   id             Int  @id @default(autoincrement())
   referredUserId Int  @unique
   referrerId     Int
+
   referredUser   User @relation("UserReferredBy", fields: [referredUserId], references: [id])
   referrer       User @relation("UserReferrals", fields: [referrerId], references: [id])
 }

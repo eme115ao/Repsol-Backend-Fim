@@ -1,22 +1,20 @@
 import { Request, Response } from "express";
-import * as authService from "../services/authService";
+import { registerService, loginService } from "../services/authService";
 
 export async function register(req: Request, res: Response) {
-  try {
-    const { phone, password, inviteCode } = req.body;
-    const result = await authService.register({ phone, password, inviteCode });
-    return res.status(201).json(result);
-  } catch (e: any) {
-    return res.status(400).json({ ok: false, error: e.message || "Erro" });
-  }
+  const { phone, password, inviteCode } = req.body;
+
+  const result = await registerService(phone, password, inviteCode);
+  if ((result as any).error) return res.status(400).json(result);
+
+  return res.json(result);
 }
 
 export async function login(req: Request, res: Response) {
-  try {
-    const { phone, password } = req.body;
-    const result = await authService.login({ phone, password });
-    return res.json(result);
-  } catch (e: any) {
-    return res.status(401).json({ ok: false, error: e.message || "Credenciais inválidas" });
-  }
+  const { phone, password } = req.body;
+
+  const result = await loginService(phone, password);
+  if ((result as any).error) return res.status(400).json(result);
+
+  return res.json(result);
 }

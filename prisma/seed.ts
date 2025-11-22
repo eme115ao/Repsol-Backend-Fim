@@ -6,14 +6,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🚀 Iniciando seed...");
 
-  // admin
+  /* ADMIN */
   const adminPhone = "934096717";
   const adminPassword = "040397";
   const inviteCode = "REPSOL-0001";
 
-  const adminExists = await prisma.user.findUnique({ where: { phone: adminPhone } });
+  const adminExists = await prisma.user.findUnique({
+    where: { phone: adminPhone }
+  });
+
   if (!adminExists) {
     const hash = await bcrypt.hash(adminPassword, 10);
+
     await prisma.user.create({
       data: {
         phone: adminPhone,
@@ -23,12 +27,13 @@ async function main() {
         saldo: 0
       }
     });
+
     console.log("✅ Admin criado:", adminPhone);
   } else {
     console.log("🔸 Admin já existe:", adminPhone);
   }
 
-  // produtos reais (7)
+  /* PRODUTOS REAIS (7) */
   const produtos = [
     {
       nome: "Gás Butano",
@@ -89,7 +94,10 @@ async function main() {
   ];
 
   for (const p of produtos) {
-    const exists = await prisma.product.findFirst({ where: { nome: p.nome } });
+    const exists = await prisma.product.findFirst({
+      where: { nome: p.nome }
+    });
+
     if (!exists) {
       await prisma.product.create({ data: p });
       console.log(`✅ Produto criado: ${p.nome}`);
@@ -98,13 +106,21 @@ async function main() {
     }
   }
 
-  // criar investimento de teste para admin (opcional)
-  const produtoTeste = await prisma.product.findFirst({ where: { nome: "Gás Butano" } });
-  const adminUser = await prisma.user.findUnique({ where: { phone: adminPhone } });
+  /* INVESTIMENTO DE TESTE PARA ADMIN */
+  const produtoTeste = await prisma.product.findFirst({
+    where: { nome: "Gás Butano" }
+  });
+
+  const adminUser = await prisma.user.findUnique({
+    where: { phone: adminPhone }
+  });
 
   if (produtoTeste && adminUser) {
     const invExists = await prisma.userProduct.findFirst({
-      where: { userId: adminUser.id, productId: produtoTeste.id }
+      where: {
+        userId: adminUser.id,
+        productId: produtoTeste.id
+      }
     });
 
     if (!invExists) {
@@ -116,12 +132,57 @@ async function main() {
           rendimentoAcumulado: 0
         }
       });
+
       console.log("✅ Investimento de teste criado para admin (Gás Butano).");
     } else {
       console.log("🔸 Investimento de teste já existe.");
     }
   }
 
+  /* BANCOS DA EMPRESA (6) */
+  await prisma.bancoEmpresa.createMany({
+    data: [
+      {
+        nome: "BAI",
+        titular: "Repsol Angola",
+        conta: "AO060040000000000000001",
+        endereco: "Luanda"
+      },
+      {
+        nome: "BFA",
+        titular: "Repsol Angola",
+        conta: "AO060050000000000000002",
+        endereco: "Luanda"
+      },
+      {
+        nome: "BIC",
+        titular: "Repsol Angola",
+        conta: "AO060060000000000000003",
+        endereco: "Luanda"
+      },
+      {
+        nome: "ATLANTICO",
+        titular: "Repsol Angola",
+        conta: "AO060070000000000000004",
+        endereco: "Luanda"
+      },
+      {
+        nome: "SOL",
+        titular: "Repsol Angola",
+        conta: "AO060080000000000000005",
+        endereco: "Luanda"
+      },
+      {
+        nome: "KEVE",
+        titular: "Repsol Angola",
+        conta: "AO060090000000000000006",
+        endereco: "Luanda"
+      }
+    ],
+    skipDuplicates: true
+  });
+
+  console.log("🏦 Bancos da empresa criados/atualizados.");
   console.log("🎯 Seed finalizado.");
 }
 

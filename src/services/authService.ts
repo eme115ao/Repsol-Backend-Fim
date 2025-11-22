@@ -1,43 +1,34 @@
-import prisma from "../prismaClient";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { prisma } from "../prismaClient";
+import { hashPassword, comparePassword } from "../utils/hash";
+import { signToken } from "../utils/jwt";
 
-const JWT_SECRET = process.env.JWT_SECRET || "repsol_secret";
+export async function registerService(phone: string, password: string, inviteCode?: string) {
+  const exists = await prisma.user.findUnique({ where: { phone } });
+  if (exists) return { error: "Número já registrado" };
 
-export async function register({ phone, password, inviteCode }: any) {
-  if (!phone || !password) throw new Error("phone and password required");
+  const hash = await hashPassword(password);
 
-  // simple inviteCode validation: require 'REPSOL-0001' or allow null if admin seed created users
-  if (!inviteCode) throw new Error("inviteCode is required");
-
-  // optional: you can implement more invite validation
-  const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) throw new Error("User already exists");
-
-  const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: {
       phone,
-      password: hashed,
-      inviteCode,
-      saldo: 0.0,
-      isAdmin: false
+      password: hash,
+      inviteCode: inviteCode || null
     }
   });
 
-  const token = jwt.sign({ id: user.id, phone: user.phone }, JWT_SECRET, { expiresIn: "7d" });
-  return { token, user: { id: user.id, phone: user.phone, isAdmin: user.isAdmin } };
+  const token = signToken({ userId: user.id });
+
+  return { token, user };
 }
 
-export async function login({ phone, password }: any) {
-  if (!phone || !password) throw new Error("phone and password required");
-
+export async function loginService(phone: string, password: string) {
   const user = await prisma.user.findUnique({ where: { phone } });
-  if (!user) throw new Error("User not found");
+  if (!user) return { error: "Usuário não encontrado" };
 
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) throw new Error("Invalid credentials");
+  const ok = await comparePassword(password, user.password);
+  if (!ok) return { error: "Senha incorreta" };
 
-  const token = jwt.sign({ id: user.id, phone: user.phone }, JWT_SECRET, { expiresIn: "7d" });
-  return { token, user: { id: user.id, phone: user.phone, isAdmin: user.isAdmin } };
+  const token = signToken({ userId: user.id });
+
+  return { token, user };
 }
