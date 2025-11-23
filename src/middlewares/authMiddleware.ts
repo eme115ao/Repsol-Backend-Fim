@@ -1,17 +1,20 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/jwt";
+import jwt from "jsonwebtoken";
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ error: "Token ausente" });
+export interface AuthRequest extends Request {
+  user?: { id: number };
+}
 
-  const token = header.replace("Bearer ", "").trim();
-
+export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const decoded = verifyToken(token) as any;
-    (req as any).userId = decoded.userId;
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "Token não enviado" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    req.user = decoded as any;
+
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ error: "Token inválido" });
   }
 }
